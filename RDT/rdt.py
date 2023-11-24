@@ -14,7 +14,7 @@ class RDTSender:
             if ack_received:
                 break
             else:
-                print(f"Timeout: Resending packet with sequence number {packet['sequence_number']}")
+                print(f"SENDER:   Timeout: Resending packet with sequence number {packet['sequence_number']}")
                 self.send_packet(packet)
 
     def send_packet(self, packet):
@@ -33,7 +33,7 @@ class RDTReceiver:
     def rdt_receive(self, sender_packet):
         received_packet = self.receive_packet()
         if received_packet and received_packet['sequence_number'] == sender_packet['sequence_number']:
-            print(f"Received {received_packet['data']} with sequence number {received_packet['sequence_number']}")
+            print(f"RECIERVER:   Received {received_packet['data']} with sequence number {received_packet['sequence_number']}")
             self.send_acknowledgement(received_packet['sequence_number'])
             return True  # Acknowledgment received successfully
         else:
@@ -44,7 +44,7 @@ class RDTReceiver:
 
     def send_acknowledgement(self, seq_num):
         ack = {'acknowledgement': seq_num}
-        print(f"Sending ACK{seq_num}")
+        print(f"RECIEVER:   Sending ACK{seq_num}")
         self.channel.send(ack)
 
 
