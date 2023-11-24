@@ -1,57 +1,76 @@
-import socket
 import random
-from multiprocessing import Process
+import time
 
-def read_file(file_path):
-    with open(file_path, 'r') as file:
-        return [line.strip() for line in file]
+class RDTSender:
+    def __init__(self, channel):
+        self.channel = channel
+        self.seq_num = 0
 
-def sender(message, loss_probability):
-    sender_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sender_socket.bind(('127.0.0.1', 12345))
+    def rdt_send(self, data, receiver):
+        packet = self.make_packet(data)
+        self.send_packet(packet)
+        while True:
+            ack_received = receiver.rdt_receive(packet)
+            if ack_received:
+                break
+            else:
+                print(f"Timeout: Resending packet with sequence number {packet['sequence_number']}")
+                self.send_packet(packet)
 
-    for i in range(len(message)):
-        packet = message[i]
-        sender_socket.sendto(packet.encode(), ('127.0.0.1', 54321))
-        print(f"Sender---Sent: {packet}")
+    def send_packet(self, packet):
+        self.channel.send(packet)
 
-        if random.random() > loss_probability:
-            try:
-                sender_socket.settimeout(2)
-                ack, _ = sender_socket.recvfrom(1024)
-                if ack.decode() == "ACK":
-                    print("Sender----Received ACK\n")
-                else:
-                    print("Sender----Received NAK, Resending\n")
-                    i -= 1  # Retransmit the current packet
-            except socket.timeout:
-                print("Sender----Timeout, Resending\n")
-                i -= 1  # Retransmit the current packet
+    def make_packet(self, data):
+        packet = {'sequence_number': self.seq_num, 'data': data}
+        self.seq_num = 1 - self.seq_num  # Toggle sequence number (0 or 1)
+        return packet
 
-    sender_socket.close()
 
-def receiver():
-    receiver_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    receiver_socket.bind(('127.0.0.1', 54321))
+class RDTReceiver:
+    def __init__(self, channel):
+        self.channel = channel
 
-    while True:
-        data, addr = receiver_socket.recvfrom(1024)
-        if random.random() > 0.2:  # Simulate 20% packet loss
-            receiver_socket.sendto("ACK".encode(), addr)
-            print(f"Reciever----Received: {data.decode()}, Sent ACK\n")
+    def rdt_receive(self, sender_packet):
+        received_packet = self.receive_packet()
+        if received_packet and received_packet['sequence_number'] == sender_packet['sequence_number']:
+            print(f"Received {received_packet['data']} with sequence number {received_packet['sequence_number']}")
+            self.send_acknowledgement(received_packet['sequence_number'])
+            return True  # Acknowledgment received successfully
         else:
-            print("Packet lost, Sending NAK\n")
+            return False  # Acknowledgment not received
 
+    def receive_packet(self):
+        return self.channel.receive()
+
+    def send_acknowledgement(self, seq_num):
+        ack = {'acknowledgement': seq_num}
+        print(f"Sending ACK{seq_num}")
+        self.channel.send(ack)
+
+
+class SimulatedChannel:
+    def __init__(self, loss_rate=0.3):
+        self.loss_rate = loss_rate
+        self.packet = None
+
+    def send(self, packet):
+        if random.random() >= self.loss_rate:
+            self.packet = packet
+        else:
+            self.packet = None
+
+    def receive(self):
+        if random.random() >= self.loss_rate:
+            return self.packet
+        return None
+
+# Example usage:
 if __name__ == "__main__":
-    file_path = "test_rdt.txt"  # Replace with your file path
-    message = read_file(file_path)
-    loss_probability = 0.3  # Simulate 20% packet loss
+    channel = SimulatedChannel()
+    sender = RDTSender(channel)
+    receiver = RDTReceiver(channel)
 
-    receiver_process = Process(target=receiver)
-    sender_process = Process(target=sender, args=(message, loss_probability))
-
-    receiver_process.start()
-    sender_process.start()
-
-    receiver_process.join()
-    sender_process.join()
+    with open("test_rdt.txt", "r") as file:
+        for line in file:
+            data, content = line.strip().split(' ', 1)
+            sender.rdt_send((data, content), receiver)
