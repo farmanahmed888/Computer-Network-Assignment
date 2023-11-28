@@ -1,27 +1,29 @@
 import heapq
 
 def dijkstra(graph, start):
-    heap = [(0, start)]
+    heap = [(0, start, None)]
     visited = set()
     distances = {node: float('inf') for node in graph}
+    predecessors = {node: None for node in graph}
     distances[start] = 0
 
     while heap:
-        (cost, current) = heapq.heappop(heap)
+        (cost, current, predecessor) = heapq.heappop(heap)
 
         if current in visited:
             continue
 
         visited.add(current)
+        predecessors[current] = predecessor
 
         for neighbor, neighbor_cost in graph[current].items():
             if neighbor not in visited:
                 new_cost = distances[current] + neighbor_cost
                 if new_cost < distances[neighbor]:
                     distances[neighbor] = new_cost
-                    heapq.heappush(heap, (new_cost, neighbor))
+                    heapq.heappush(heap, (new_cost, neighbor, current))
 
-    return distances
+    return predecessors
 
 def build_topology(filename):
     graph = {}
@@ -47,13 +49,20 @@ def calculate_shortest_path(graph, start_node, end_node):
         print(f"Start or end node not found in the topology.")
         return None
 
-    distances = dijkstra(graph, start_node)
+    predecessors = dijkstra(graph, start_node)
 
-    if distances[end_node] == float('inf'):
+    if predecessors[end_node] is None:
         print(f"There is no path from {start_node} to {end_node}.")
         return None
     else:
-        return distances[end_node]
+        path = []
+        current = end_node
+
+        while current is not None:
+            path.insert(0, current)
+            current = predecessors[current]
+
+        return path
 
 def main():
     filename = 'test_linkstate.txt'  # Replace with the actual filename
@@ -62,10 +71,10 @@ def main():
     start_node = 'A'
     end_node = 'I'
 
-    shortest_path = calculate_shortest_path(graph, start_node, end_node)
+    path = calculate_shortest_path(graph, start_node, end_node)
 
-    if shortest_path is not None:
-        print(f"Shortest path from {start_node} to {end_node}: {shortest_path}")
+    if path is not None:
+        print(f"Shortest path from {start_node} to {end_node}: {' -> '.join(path)}")
 
 if __name__ == "__main__":
     main()

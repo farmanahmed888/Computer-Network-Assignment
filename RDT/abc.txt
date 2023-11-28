@@ -1,0 +1,30 @@
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+RECIERVER:   Received ('Data_1', 'Content_1') with sequence number 0
+RECIEVER:   Sending ACK0
+RECIERVER:   Received ('Data_2', 'Content_2') with sequence number 1
+RECIEVER:   Sending ACK1
+RECIERVER:   Received ('Data_3', 'Content_3') with sequence number 0
+RECIEVER:   Sending ACK0
+RECIERVER:   Received ('Data_4', 'Content_4') with sequence number 1
+RECIEVER:   Sending ACK1
+SENDER:   Timeout: Resending packet with sequence number 0
+SENDER:   Timeout: Resending packet with sequence number 0
+RECIERVER:   Received ('Data_5', 'Content_5') with sequence number 0
+RECIEVER:   Sending ACK0
+RECIERVER:   Received ('Data_6', 'Content_6') with sequence number 1
+RECIEVER:   Sending ACK1
+RECIERVER:   Received ('Data_7', 'Content_7') with sequence number 0
+RECIEVER:   Sending ACK0
+RECIERVER:   Received ('Data_8', 'Content_8') with sequence number 1
+RECIEVER:   Sending ACK1
+RECIERVER:   Received ('Data_9', 'Content_9') with sequence number 0
+RECIEVER:   Sending ACK0
+RECIERVER:   Received ('Data_10', 'Content_10') with sequence number 1
+RECIEVER:   Sending ACK1
