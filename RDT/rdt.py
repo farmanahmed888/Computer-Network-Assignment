@@ -1,76 +1,77 @@
 import random
 import time
 
-class RDTSender:
-    def __init__(self, channel):
-        self.channel = channel
-        self.seq_num = 0
-
-    def rdt_send(self, data, receiver):
-        packet = self.make_packet(data)
-        self.send_packet(packet)
-        while True:
-            ack_received = receiver.rdt_receive(packet)
-            if ack_received:
-                break
-            else:
-                print(f"SENDER:   Timeout: Resending packet with sequence number {packet['sequence_number']}")
-                self.send_packet(packet)
-
-    def send_packet(self, packet):
-        self.channel.send(packet)
-
-    def make_packet(self, data):
-        packet = {'sequence_number': self.seq_num, 'data': data}
-        self.seq_num = 1 - self.seq_num  # Toggle sequence number (0 or 1)
-        return packet
-
-
-class RDTReceiver:
-    def __init__(self, channel):
-        self.channel = channel
-
-    def rdt_receive(self, sender_packet):
-        received_packet = self.receive_packet()
-        if received_packet and received_packet['sequence_number'] == sender_packet['sequence_number']:
-            print(f"RECIERVER:   Received {received_packet['data']} with sequence number {received_packet['sequence_number']}")
-            self.send_acknowledgement(received_packet['sequence_number'])
-            return True  # Acknowledgment received successfully
-        else:
-            return False  # Acknowledgment not received
-
-    def receive_packet(self):
-        return self.channel.receive()
-
-    def send_acknowledgement(self, seq_num):
-        ack = {'acknowledgement': seq_num}
-        print(f"RECIEVER:   Sending ACK{seq_num}")
-        self.channel.send(ack)
-
-
 class SimulatedChannel:
     def __init__(self, loss_rate=0.3):
         self.loss_rate = loss_rate
         self.packet = None
-
+    
     def send(self, packet):
         if random.random() >= self.loss_rate:
             self.packet = packet
         else:
             self.packet = None
-
+    
     def receive(self):
         if random.random() >= self.loss_rate:
             return self.packet
         return None
 
-# Example usage:
-if __name__ == "__main__":
-    channel = SimulatedChannel()
-    sender = RDTSender(channel)
-    receiver = RDTReceiver(channel)
+class StopAndWaitRDT:
+    def __init__(self, channel):
+        self.channel = channel
+        self.sequence_number = 0
 
-    with open("test_rdt.txt", "r") as file:
-        for line in file:
-            data, content = line.strip().split(' ', 1)
-            sender.rdt_send((data, content), receiver)
+    def send_data(self, data, content):
+        packet = {"data": data, "content": content, "seq_num": self.sequence_number}
+        print(f"Sending {data} - {content} with sequence number {self.sequence_number}")
+        self.send_packet(packet)
+
+        # Wait for ACK
+        ack_received = self.receive_ack()
+        if ack_received == self.sequence_number:
+            print(f"Received ACK {ack_received}. Transmission successful")
+            self.sequence_number = 1 - self.sequence_number  # Toggle sequence number (0 or 1)
+        else:
+            print(f"Timeout Occurred. Retransmitting data")
+            self.send_data(data, content)  # Retransmit if ACK not received
+
+    def send_packet(self, packet):
+        # Send packet over the network
+        self.channel.send(packet)
+
+    def receive_ack(self):
+        # Receive ACK from the receiver
+        ack_packet = self.channel.receive()
+        if ack_packet is not None:
+            return ack_packet["seq_num"]
+        return None
+
+class StopAndWaitReceiver:
+    def __init__(self, channel):
+        self.channel = channel
+
+    def receive_data(self):
+        packet = self.channel.receive()
+        if packet is not None:
+            print(f"Received {packet['data']} - {packet['content']} with sequence number {packet['seq_num']}")
+            self.send_ack(packet)
+
+    def send_ack(self, packet):
+        # Send ACK to the sender
+        ack_packet = {"seq_num": packet["seq_num"]}
+        self.channel.send(ack_packet)
+
+# Example usage:
+channel = SimulatedChannel()
+sender = StopAndWaitRDT(channel)
+receiver = StopAndWaitReceiver(channel)
+
+# Read data from file
+with open("test_rdt.txt", "r") as file:
+    data_list = [line.strip().split(" ", 1) for line in file]
+
+for data, content in data_list:
+    sender.send_data(data, content)
+    receiver.receive_data()
+    time.sleep(1)
