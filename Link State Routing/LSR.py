@@ -65,7 +65,7 @@ def calculate_shortest_path(graph, start_node, end_node):
         return path
 
 def main():
-    filename = 'test_linkstate.txt'  # Replace with the actual filename
+    filename = 'test_linkstate.txt'  
     graph = build_topology(filename)
 
     start_node = 'A'
